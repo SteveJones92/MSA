@@ -136,7 +136,7 @@ end
 # if a cap is specified, stops when enough accepted children are added
 # children only accepted if higher score than highest or lowest parent (design decision)
 # original population dies off, only children returned
-function crossover(input_sequence, population, num_best, cap, len, score_list)
+function crossover(input_sequence, population, num_best, cap, len, score_list, mutation_strength, best_score)
     ret_children = []
     input_length = length(input_sequence)
     
@@ -150,13 +150,22 @@ function crossover(input_sequence, population, num_best, cap, len, score_list)
             append!(child1, population[j][2][cut + 1:input_length])
             append!(child2, population[j][2][1:cut])
             append!(child2, population[i][2][cut + 1:input_length])
+
+            #if rand() < 0.5
+                # mutate child
+                mutate_sequence(child1, mutation_strength, len)
+            #else
+                mutate_sequence(child2, mutation_strength, len)
+            #end
             
             child1_w_fitness = [ score_gap_list(input_sequence, child1, len, score_list), child1 ]
             child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
             
-            fitness_criteria = max(population[i][1], population[j][1])
-            #fitness_criteria = min(population[i][1], population[j][1])
-            
+            #fitness_criteria = max(population[i][1], population[j][1])
+            fitness_criteria = min(population[i][1], population[j][1])
+            # best core we have from the elitism population
+            #fitness_criteria = best_score
+
             if (child1_w_fitness[1] > fitness_criteria)
                 push!(ret_children, child1_w_fitness)
             end
@@ -176,7 +185,7 @@ end
 
 # the difference to crossover 1 is this picks one or the other randomly
 # for each cut, instead of left right on all
-function crossover2(input_sequence, population, num_best, cap, len, score_list)
+function crossover2(input_sequence, population, num_best, cap, len, score_list, mutation_strength, best_score)
     ret_children = []
     input_length = length(input_sequence)
     for i = 1:num_best
@@ -191,6 +200,12 @@ function crossover2(input_sequence, population, num_best, cap, len, score_list)
                 push!(child1, population[current[1]][2][k])
                 push!(child2, population[current[2]][2][k])
             end
+
+            if rand() < 0.5
+                # mutate child
+                mutate_sequence(child1, mutation_strength, len)
+                mutate_sequence(child2, mutation_strength, len)
+            end
             
             child1_w_fitness = [ score_gap_list(input_sequence, child1, len, score_list), child1 ]
             child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
@@ -198,7 +213,9 @@ function crossover2(input_sequence, population, num_best, cap, len, score_list)
             # score of best of 2 parents
             #fitness_criteria = max(population[i][1], population[j][1])
             # score of worst of 2 parents
-            fitness_criteria = min(population[i][1], population[j][1])
+            #fitness_criteria = min(population[i][1], population[j][1])
+            # best core we have from the elitism population
+            fitness_criteria = best_score
             
             if (child1_w_fitness[1] > fitness_criteria)
                 push!(ret_children, child1_w_fitness)
@@ -217,33 +234,22 @@ function crossover2(input_sequence, population, num_best, cap, len, score_list)
     return ret_children
 end
 
-# needs input sequence for rescoring, children population, and a mutation string_length
-# as well as segment length to pick the random number for each new mutation item
-function mutate(input_sequence, children_population, mutation_strength, segment_length, score_list)
+function mutate_sequence(sequence, mutation_strength, segment_length)
     index_list_mutation = []
     rand_index = 0
 
-    # for every child
-    for i = 1:length(children_population)
-        # for every gap list in every child
-        for j = 1:length(children_population[i])
-            randsubseq!(index_list_mutation, 1:length(children_population[i][j]), mutation_strength)
-
-            for k = 1:length(index_list_mutation)
+    for i = 1:length(sequence)
+        randsubseq!(index_list_mutation, 1:length(sequence[i]), mutation_strength)
+        for j = 1:length(index_list_mutation)
+            rand_index = Int(rand(1:segment_length))
+            while rand_index in sequence[i]
                 rand_index = Int(rand(1:segment_length))
-                while rand_index in children_population[i][j]
-                    rand_index = Int(rand(1:segment_length))
-                end
-
-                children_population[i][j][index_list_mutation[k]] = rand_index
             end
-            sort!(children_population[i][j])
+
+            sequence[i][index_list_mutation[j]] = rand_index
         end
+        sort!(sequence[i])
     end
-
-    children_population_scored = get_fitness_population(input_sequence, children_population, segment_length, score_list)
-
-    return children_population_scored
 end
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -296,9 +302,6 @@ function get_fitness_population(input_sequence, gap_population, len, score_list)
     for i = 1:length(gap_population)
         push!(gap_pop_w_fitness, [score_gap_list(input_sequence, gap_population[i], len, score_list), gap_population[i]])
     end
-    
-    # needs to be sorted, for easy checking of best scores
-    sort!(gap_pop_w_fitness, by = x -> (x[1]), rev = true)
     
     return gap_pop_w_fitness
 end
@@ -382,41 +385,19 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         end
 
         # do crossover on best, plus some of rest depending on the number of crossover
-        children = crossover2(input_sequence, original_population, num_crossover, children_cap, len, score_list)
+        children = crossover(input_sequence, original_population, num_crossover, children_cap, len, score_list, mutation_strength, fitness_population[1][1])
 
         if printout
             println("New children: ",  length(children), '\n')
         end
 
-        # remove score for mutation, which will rescore
-       children_unscored = []
-
-        # TODO see all where not doing a deepcopy will effect the outcome
-       for i = 1:length(children)
-           push!(children_unscored, deepcopy(children[i][2]))
-       end
-
-        if printout
-            print("Crossed over children.", '\n')
-            print_fitness_population(input_sequence, children[1:min(end, 20)])
-            print('\n')
-        end
-
-        # do a mutation on children, return scored
-        children = mutate(input_sequence, children_unscored, mutation_strength, len, score_list)
-
-        if printout
-            print("Mutated crossed over children.", '\n')
-            print_fitness_population(input_sequence, children[1:min(end, 20)])
-            print('\n')
-        end
-
-        # place the children into the next population set
-        append!(fitness_population, children)
 
         # get list of the chromosome representations sorted by fitness
         if length(children) == 0
             append!(fitness_population, get_fitness_population(input_sequence, create_gap_population(gap_counts, len, init_pop_size), len, score_list))
+        else
+             # place the children into the next population set
+            append!(fitness_population, children)
         end
 
         # make sure to keep it sorted so elitism and crossover works again
@@ -424,13 +405,14 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         sort!(fitness_population, by = x -> (x[1]), rev = true)
 
         if printout
-            print("The new population after crossover and mutation, max 20", '\n')
+            print("The new population after crossover w/ mutation, max 20", '\n')
             print_fitness_population(input_sequence, fitness_population[1:min(end, 20)])
             print('\n')
         end
 
         if generation_count % 100 == 0
             println(string(generation_count, ' ', fitness_population[1][1]))
+            println("New children: ",  length(children), '\n')
         end
 
         generation_count -= 1
