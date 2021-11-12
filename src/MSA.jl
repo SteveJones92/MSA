@@ -72,7 +72,7 @@ function score_gap_list(input_sequence_set, gap_list, sequence_length, score_lis
     # go through sequence length, to index by column, all input sequences + gaps should = sequence length
     for i = 1:sequence_length
         score_buffer = 0
-        gap_count = 0
+
         # go through each input sequence, which is a single line of characters
         # last one will just pass through, either not doing a score or it was a gap
         # so that gap count and offset still needs to increase
@@ -196,9 +196,9 @@ function crossover2(input_sequence, population, num_best, cap, len, score_list)
             child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
             
             # score of best of 2 parents
-            fitness_criteria = max(population[i][1], population[j][1])
+            #fitness_criteria = max(population[i][1], population[j][1])
             # score of worst of 2 parents
-            #fitness_criteria = min(population[i][1], population[j][1])
+            fitness_criteria = min(population[i][1], population[j][1])
             
             if (child1_w_fitness[1] > fitness_criteria)
                 push!(ret_children, child1_w_fitness)
@@ -234,7 +234,8 @@ function mutate(input_sequence, children_population, mutation_strength, segment_
                 while rand_index in children_population[i][j]
                     rand_index = Int(rand(1:segment_length))
                 end
-                children_population[i][j][k] = rand_index
+
+                children_population[i][j][index_list_mutation[k]] = rand_index
             end
             sort!(children_population[i][j])
         end
@@ -325,7 +326,7 @@ function print_fitness_population(input_sequence, fitness_population)
 end
 
 function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_proportion,
-             num_crossover, children_cap, generation_count, mutation_strength, random_seed, printout)
+             num_crossover, children_cap, generation_count, mutation_strength, printout)
 
 
     # get the gaps needed to increase each string to a calculated length
@@ -366,8 +367,10 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
     # now we have a list with fitness values, start building generations
     # and operating on them
     while generation_count >= 1
-        print("Generation: ", generation_count)
-        print("-----------------------------------------------------------", '\n')
+        if printout
+            print("Generation: ", generation_count)
+            print("-----------------------------------------------------------", '\n')
+        end
         # elitism, select a proportion of these
         fitness_population, original_population = elitism(fitness_population, elitism_prop)
 
@@ -412,9 +415,9 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         append!(fitness_population, children)
 
         # get list of the chromosome representations sorted by fitness
-        #if length(children) == 0
-            #append!(next_pop, get_fitness_population(input_sequence, create_gap_population(gap_counts, len, 10), len, score_list))
-        #end
+        if length(children) == 0
+            append!(fitness_population, get_fitness_population(input_sequence, create_gap_population(gap_counts, len, init_pop_size), len, score_list))
+        end
 
         # make sure to keep it sorted so elitism and crossover works again
         # became unsorted when adding children back to fitness (even though children are sorted atm)
@@ -426,12 +429,15 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
             print('\n')
         end
 
-        #if generation_count % 100 == 0
-            #println(string(generation_count, ' ', next_pop[1][1]))
-        #end
+        if generation_count % 100 == 0
+            println(string(generation_count, ' ', fitness_population[1][1]))
+        end
 
         generation_count -= 1
     end
+
+    #print(print_fitness_population(input_sequence, fitness_population[1:min(end, 20)]))
+    print(print_fitness_population(input_sequence, fitness_population[1:1]))
 end
 
 export MSA
