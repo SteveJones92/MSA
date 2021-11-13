@@ -394,6 +394,9 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
     # get list of the chromosome representations sorted by fitness
     fitness_population = get_fitness_population(input_sequence, chrom_rep_population, len, score_list)
 
+    # it is unsorted at this point
+    sort!(fitness_population, by = x -> (x[1]), rev = true)
+
     # print the score of the populations and the reconstructed strings
     if printout
         print("The first populations score and associated strings.", '\n')

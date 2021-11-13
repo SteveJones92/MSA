@@ -45,13 +45,13 @@ end
 
 # hyper_parameters
 score_list = [1, 0, 0]        # match, mismatch, gap penalty
-initial_population_size = 100     # currently always the maintained population
+initial_population_size = 1000     # currently always the maintained population
 gap_growth = 1.16                # after max input length is found, this is used to provide gaps for the max as well, ie [3, 4, 7] would be 7 * 1.2 = 9 (rounded up)
                                 # so 2 gaps put in the largest one, 5 in the next, and the 3 sized input would get 6 gaps
 elitism_prop = 0.2             # proportion of best to select to keep
 num_crossover = 3               # number of crossovers to take as parents for generating against rest
 children_cap = 100          # how many children can be the result of a crossover, "nothing" means there is no cap
-generation_count = 2000          # how many times to run through children
+generation_count = 1000          # how many times to run through children
 mutation_strength = 0.03        # how much do the gaps shuffle, 1 would be full shuffle
 crossover_criteria = 1          # save children from crossover when they are greater than 1 = average, 2 = worst, 3 = best of the 2 parents
 crossover_version = 1           # which type of crossover to use, 1 = random cuts and always left/right, 2 = random cuts and random left/right mix
