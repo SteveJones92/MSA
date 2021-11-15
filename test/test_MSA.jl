@@ -30,8 +30,8 @@ input16 = "GTTACATATCAGAATCATTAGAAACGCTCTTAATGGGGTTAAGCAGAGACTTAGTAAGGATTAACTCCC
 input_project_example = [ input13, input14, input15, input16 ]
 
 input_rand_seq = []
-for i = 1:rand(3:10)
-    push!(input_rand_seq, randstring("ACGT", rand(10:20)))
+for i = 1:rand(4:4)
+    push!(input_rand_seq, randstring("ACGT", rand(10:25)))
 end
 #--------
 
@@ -45,7 +45,7 @@ end
 
 # hyper_parameters
 score_list = [1, 0, 0]        # match, mismatch, gap penalty
-initial_population_size = 1000     # currently always the maintained population
+initial_population_size = 10     # currently always the maintained population
 gap_growth = 1.16                # after max input length is found, this is used to provide gaps for the max as well, ie [3, 4, 7] would be 7 * 1.2 = 9 (rounded up)
                                 # so 2 gaps put in the largest one, 5 in the next, and the 3 sized input would get 6 gaps
 elitism_prop = 0.2             # proportion of best to select to keep
@@ -56,6 +56,7 @@ mutation_strength = 0.03        # how much do the gaps shuffle, 1 would be full 
 crossover_criteria = 1          # save children from crossover when they are greater than 1 = average, 2 = worst, 3 = best of the 2 parents
 crossover_version = 1           # which type of crossover to use, 1 = random cuts and always left/right, 2 = random cuts and random left/right mix
 return_early = false            # if true, returns when children cap is met, otherwise when trying to add a new child, sort and pop off the worst
+mutation_chance = 0.5            # the % chance each child has to undergo mutation after crossover
 printout = false                 # whether to print out step-wise operation of the MSA to see how it works
                                 
 #input_sequence = input_rand_seq
@@ -64,8 +65,13 @@ printout = false                 # whether to print out step-wise operation of t
 #input_sequence = input_shortTest_sequence
 input_sequence = input_project_example
 
+for i = 1:length(input_sequence)
+    println(input_sequence[i])
+end
+println()
+
 MSA(input_sequence, score_list, initial_population_size, gap_growth, elitism_prop, num_crossover, children_cap, generation_count, mutation_strength,
-    crossover_criteria, crossover_version, return_early, printout)
+    crossover_criteria, crossover_version, return_early, mutation_chance, printout)
 
 # code for checking an output score with the gaps inserted - as in the project description or a built string
 # MSA outputs to a file the best result of the run at the end

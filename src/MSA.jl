@@ -123,14 +123,14 @@ function score_gap_list(input_sequence_set, gap_list, sequence_length, score_lis
 end
 
 # "save" some of the population for next generation, optionally return a modified input list
-function elitism(chrom_pop_fitness, proportion)
+function elitism(chrom_pop_fitness, proportion, children_cap)
     num_items = Int(ceil(length(chrom_pop_fitness) * proportion))
 
     # return the leftover as in the paper
     #return [chrom_pop_fitness[1:num_items], chrom_pop_fitness[num_items + 1:length(chrom_pop_fitness)]]
 
     # returns the original list back, better results
-    return [chrom_pop_fitness[1:num_items], chrom_pop_fitness]
+    return [chrom_pop_fitness[1:min(children_cap, num_items)], chrom_pop_fitness]
 end
 
 # take the population and create children off of random points left and right combined
@@ -249,7 +249,7 @@ end
 
 # needs input sequence for rescoring, children population, and a mutation string_length
 # as well as segment length to pick the random number for each new mutation item
-function mutate(input_sequence, children_population, mutation_strength, segment_length, score_list)
+function mutate(input_sequence, children_population, mutation_strength, mutation_chance, segment_length, score_list)
     index_list_mutation = []
     rand_index = 0
 
@@ -257,7 +257,7 @@ function mutate(input_sequence, children_population, mutation_strength, segment_
     for i = 1:length(children_population)
         # only half the time do a small mutation
         # otherwise keep it
-        if rand() < 0.5
+        if rand() < mutation_chance
             continue
         end
 
@@ -358,12 +358,12 @@ function print_fitness_population(input_sequence, fitness_population)
         end
         out = string(out, "\n")
     end
-    #print(out)
+    print(out)
     return out
 end
 
 function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_proportion,
-             num_crossover, children_cap, generation_count, mutation_strength, crossover_criteria, crossover_version, return_early, printout)
+             num_crossover, children_cap, generation_count, mutation_strength, crossover_criteria, crossover_version, return_early, mutation_chance, printout)
 
 
     # get the gaps needed to increase each string to a calculated length
@@ -386,9 +386,9 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         print("The population of random gap positions that make new sequence alignments.", '\n')
         # show the randomized population
         for i = 1:length(chrom_rep_population)
-            print(chrom_rep_population[i], '\n')
+            println(chrom_rep_population[i], '\n')
         end
-        print('\n')
+        println()
     end
 
     # get list of the chromosome representations sorted by fitness
@@ -412,11 +412,12 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
             print("-----------------------------------------------------------", '\n')
         end
         # elitism, select a proportion of these
-        fitness_population, original_population = elitism(fitness_population, elitism_prop)
+        fitness_population, original_population = elitism(fitness_population, elitism_prop, children_cap)
 
         if printout
-            print("The elitism selection and then leftover population.", '\n')
+            print("The elitism selection.", '\n')
             print_fitness_population(input_sequence, fitness_population)
+            print("The population subject to crossover.", '\n')
             print_fitness_population(input_sequence, original_population)
             print('\n')
         end
@@ -448,7 +449,7 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         end
 
         # do a mutation on children, return scored
-        children = mutate(input_sequence, children_unscored, mutation_strength, len, score_list)
+        children = mutate(input_sequence, children_unscored, mutation_strength, mutation_chance, len, score_list)
 
         if printout
             print("Mutated crossed over children.", '\n')
@@ -481,8 +482,8 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         generation_count -= 1
     end
 
-    #print(print_fitness_population(input_sequence, fitness_population[1:min(end, 20)]))
-    print(print_fitness_population(input_sequence, fitness_population[1:1]))
+    #print_fitness_population(input_sequence, fitness_population[1:min(end, 20)])
+    #print_fitness_population(input_sequence, fitness_population[1:1])
 
     open("out.txt", "w") do io
         open("out.txt", "w") do f  # "w" for writing
