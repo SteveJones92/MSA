@@ -63,15 +63,34 @@ printout = false                 # whether to print out step-wise operation of t
 #input_sequence = input_paperTest_sequence
 #input_sequence = input_online
 #input_sequence = input_shortTest_sequence
-input_sequence = input_project_example
+#input_sequence = input_project_example
+input_sequence = []
+
+score_list, input = msa_from_file("in.txt")
+
+for i = 1:length(input)
+    push!(input_sequence, input[i][2])
+end
 
 for i = 1:length(input_sequence)
     println(input_sequence[i])
 end
 println()
 
-MSA(input_sequence, score_list, initial_population_size, gap_growth, elitism_prop, num_crossover, children_cap, generation_count, mutation_strength,
-    crossover_criteria, crossover_version, return_early, mutation_chance, printout)
+results = MSA(input_sequence, score_list, initial_population_size, gap_growth, elitism_prop, num_crossover, children_cap, generation_count, mutation_strength,
+              crossover_criteria, crossover_version, return_early, mutation_chance, printout)
+
+
+score = results[1]
+results = build_strings(input_sequence, results[2])
+
+open("out.txt", "w") do io
+    write(io, string("Score: ", score, '\n'))
+    for i = 1:length(input)
+        write(io, input[i][1], '\n')
+        write(io, results[i], '\n')
+    end
+end;
 
 # code for checking an output score with the gaps inserted - as in the project description or a built string
 # MSA outputs to a file the best result of the run at the end

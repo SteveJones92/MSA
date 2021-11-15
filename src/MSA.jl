@@ -365,7 +365,6 @@ end
 function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_proportion,
              num_crossover, children_cap, generation_count, mutation_strength, crossover_criteria, crossover_version, return_early, mutation_chance, printout)
 
-
     # get the gaps needed to increase each string to a calculated length
     gap_counts, len = get_gap_count(input_sequence, gap_growth)
 
@@ -484,13 +483,9 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
 
     #print_fitness_population(input_sequence, fitness_population[1:min(end, 20)])
     #print_fitness_population(input_sequence, fitness_population[1:1])
+    print_fitness_population(input_sequence, fitness_population[1:1])
 
-    open("out.txt", "w") do io
-        open("out.txt", "w") do f  # "w" for writing
-            write(f, print_fitness_population(input_sequence, fitness_population[1:1]))
-        end
-    end;
-
+    return fitness_population[1]
 end
 
 export MSA

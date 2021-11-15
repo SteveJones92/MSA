@@ -49,6 +49,28 @@ function get_gap_count(input_sequence, growth)
     return gap_counts, Int(len)
 end
 
+function msa_from_file(file)
+    score_list = []
+    input_sequence = []
+    open(file, "r") do io
+        lines = readlines(io)
+        push!(score_list, parse(Int64, lines[1]))
+        push!(score_list, parse(Int64, lines[2]))
+        push!(score_list, parse(Int64, lines[3]))
+
+        range = 4 + parse(Int64, lines[4]) * 2
+        for i = 5:2:range
+            push!(input_sequence, [lines[i], lines[i + 1]])
+        end
+    end;
+
+    println(score_list)
+    println(input_sequence)
+
+    return score_list, input_sequence
+end
+
 export insert_char
 export build_strings
 export get_gap_count
+export msa_from_file
