@@ -1,5 +1,6 @@
 using Random
 include("tools.jl")
+include("pam250scoring.jl")
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -139,7 +140,7 @@ end
 # if a cap is specified, stops when enough accepted children are added
 # children only accepted if higher score than highest or lowest parent (design decision)
 # original population dies off, only children returned
-function crossover(input_sequence, population, num_best, cap, len, score_list, criteria, return_early)
+function crossover(input_sequence, population, num_best, cap, len, score_list, score_type, criteria, return_early, gap_ext_penalty)
     ret_children = []
     input_length = length(input_sequence)
 
@@ -154,8 +155,13 @@ function crossover(input_sequence, population, num_best, cap, len, score_list, c
             append!(child2, population[j][2][1:cut])
             append!(child2, population[i][2][cut + 1:input_length])
             
-            child1_w_fitness = [ score_gap_list(input_sequence, child1, len, score_list), child1 ]
-            child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
+            if score_type == 2
+                child1_w_fitness = [ score_gap_list_pam250(input_sequence, child1, len, score_list, gap_ext_penalty), child1 ]
+                child2_w_fitness = [ score_gap_list_pam250(input_sequence, child2, len, score_list, gap_ext_penalty), child2 ]
+            else
+                child1_w_fitness = [ score_gap_list(input_sequence, child1, len, score_list), child1 ]
+                child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
+            end
             
             if criteria == 1
                 # average of the 2
@@ -193,7 +199,7 @@ end
 
 # the difference to crossover 1 is this picks one or the other randomly
 # for each cut, instead of left right on all
-function crossover2(input_sequence, population, num_best, cap, len, score_list, criteria, return_early)
+function crossover2(input_sequence, population, num_best, cap, len, score_list, score_type, criteria, return_early, gap_ext_penalty)
     ret_children = []
     input_length = length(input_sequence)
 
@@ -210,8 +216,13 @@ function crossover2(input_sequence, population, num_best, cap, len, score_list, 
                 push!(child2, population[current[2]][2][k])
             end
             
-            child1_w_fitness = [ score_gap_list(input_sequence, child1, len, score_list), child1 ]
-            child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
+            if score_type == 2
+                child1_w_fitness = [ score_gap_list_pam250(input_sequence, child1, len, score_list, gap_ext_penalty), child1 ]
+                child2_w_fitness = [ score_gap_list_pam250(input_sequence, child2, len, score_list, gap_ext_penalty), child2 ]
+            else
+                child1_w_fitness = [ score_gap_list(input_sequence, child1, len, score_list), child1 ]
+                child2_w_fitness = [ score_gap_list(input_sequence, child2, len, score_list), child2 ]
+            end
             
             if criteria == 1
                 # average of the 2
@@ -249,7 +260,7 @@ end
 
 # needs input sequence for rescoring, children population, and a mutation string_length
 # as well as segment length to pick the random number for each new mutation item
-function mutate(input_sequence, children_population, mutation_strength, mutation_chance, segment_length, score_list)
+function mutate(input_sequence, children_population, mutation_strength, mutation_chance, segment_length, score_list, score_type, gap_ext_penalty)
     index_list_mutation = []
     rand_index = 0
 
@@ -277,7 +288,7 @@ function mutate(input_sequence, children_population, mutation_strength, mutation
         end
     end
 
-    children_population_scored = get_fitness_population(input_sequence, children_population, segment_length, score_list)
+    children_population_scored = get_fitness_population(input_sequence, children_population, segment_length, score_list, score_type, gap_ext_penalty)
 
     return children_population_scored
 end
@@ -326,11 +337,15 @@ function create_gap_list(gap_counts, final_length)
     return gap_list
 end
 
-function get_fitness_population(input_sequence, gap_population, len, score_list)
+function get_fitness_population(input_sequence, gap_population, len, score_list, score_type, gap_ext_penalty)
     gap_pop_w_fitness = []
 
     for i = 1:length(gap_population)
-        push!(gap_pop_w_fitness, [score_gap_list(input_sequence, gap_population[i], len, score_list), gap_population[i]])
+        if score_type == 2
+            push!(gap_pop_w_fitness, [score_gap_list_pam250(input_sequence, gap_population[i], len, score_list, gap_ext_penalty), gap_population[i]])
+        else
+            push!(gap_pop_w_fitness, [score_gap_list(input_sequence, gap_population[i], len, score_list), gap_population[i]])
+        end
     end
     
     # needs to be sorted, for easy checking of best scores
@@ -362,8 +377,18 @@ function print_fitness_population(input_sequence, fitness_population)
     return out
 end
 
-function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_proportion,
-             num_crossover, children_cap, generation_count, mutation_strength, crossover_criteria, crossover_version, return_early, mutation_chance, printout)
+function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_proportion, num_crossover, children_cap, generation_count,
+             mutation_strength, crossover_criteria, crossover_version, return_early, mutation_chance, printout, score_type, gap_ext_penalty)
+
+    
+
+    sequence = [
+        "___________________________________MEVKKTSWTEEEDRILYQAHKRLG_NRWAEIAKLLP_____GRTDNAIKNHWNSTMRRKV____________________",
+        "______________________________________SHPTYSEMIAAAIRAEKSRGG_SSRQSIQKYIKSHYKVGHNADLQIKLSIRRLLAAGVLKQTKGVGASGSFRLAK__",
+        "______________________________________PRGSALSDTERAQLDVMKLLN_VSLHEMSRKIS______RSRHCIRVYLKDPVSYGTS___________________",
+        "_____________________________________MRSSAKQEELVKAFKALLKEEKFSSQGEIVAALQEQGFDNINQSKVSRMLTKFGAVRTRNAKMEMVYCLPAELGVPTT",
+        "SAAMAEQRHQEWLRFVDLLKNAYQNDLHLPLLNLMLTPDEREALGTRVRIIEELLRGE__MSQRELKNELG______AGIATITRGSNSLKAAPVELRQWLEEVLLKSD______"
+    ]
 
     # get the gaps needed to increase each string to a calculated length
     gap_counts, len = get_gap_count(input_sequence, gap_growth)
@@ -391,7 +416,7 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
     end
 
     # get list of the chromosome representations sorted by fitness
-    fitness_population = get_fitness_population(input_sequence, chrom_rep_population, len, score_list)
+    fitness_population = get_fitness_population(input_sequence, chrom_rep_population, len, score_list, score_type, gap_ext_penalty)
 
     # it is unsorted at this point
     sort!(fitness_population, by = x -> (x[1]), rev = true)
@@ -423,9 +448,9 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
 
         # do crossover on best, plus some of rest depending on the number of crossover
         if crossover_version == 1
-            children = crossover(input_sequence, original_population, num_crossover, children_cap, len, score_list, crossover_criteria, return_early)
+            children = crossover(input_sequence, original_population, num_crossover, children_cap, len, score_list, score_type, crossover_criteria, return_early, gap_ext_penalty)
         else
-            children = crossover2(input_sequence, original_population, num_crossover, children_cap, len, score_list, crossover_criteria, return_early)
+            children = crossover2(input_sequence, original_population, num_crossover, children_cap, len, score_list, score_type, crossover_criteria, return_early, gap_ext_penalty)
         end
 
 
@@ -448,7 +473,7 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
         end
 
         # do a mutation on children, return scored
-        children = mutate(input_sequence, children_unscored, mutation_strength, mutation_chance, len, score_list)
+        children = mutate(input_sequence, children_unscored, mutation_strength, mutation_chance, len, score_list, score_type, gap_ext_penalty)
 
         if printout
             print("Mutated crossed over children.", '\n')
@@ -458,10 +483,11 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
 
         # get list of the chromosome representations sorted by fitness
         if length(children) == 0
-            append!(fitness_population, get_fitness_population(input_sequence, create_gap_population(gap_counts, len, init_pop_size), len, score_list))
+            append!(fitness_population, get_fitness_population(input_sequence, create_gap_population(gap_counts, len, 10), len, score_list, score_type, gap_ext_penalty))
         else
             # place the children into the next population set
             append!(fitness_population, children)
+            append!(fitness_population, get_fitness_population(input_sequence, create_gap_population(gap_counts, len, 1), len, score_list, score_type, gap_ext_penalty))
         end
 
         # make sure to keep it sorted so elitism and crossover works again
@@ -476,6 +502,16 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
 
         if generation_count % 100 == 0
             println(string(generation_count, ' ', fitness_population[1][1], " New children: ",  length(children)))
+            print_fitness_population(input_sequence, fitness_population[1:1])
+            fitness_string = build_strings(input_sequence, fitness_population[1][2])
+            sequence2 = [
+                fitness_string[1],
+                fitness_string[2],
+                fitness_string[3],
+                fitness_string[4],
+                fitness_string[5]
+            ]
+            pairwise_score(sequence, sequence2)
         end
 
         generation_count -= 1
@@ -485,6 +521,36 @@ function MSA(input_sequence, score_list, init_pop_size, gap_growth, elitism_prop
     #print_fitness_population(input_sequence, fitness_population[1:1])
     print_fitness_population(input_sequence, fitness_population[1:1])
 
+    println(score_gap_list_pam250(input_sequence, fitness_population[1][2], 115, score_list, gap_ext_penalty))
+
+    fitness_string = build_strings(input_sequence, fitness_population[1][2])
+    #println(fitness_string)
+
+    sequence = [
+        "___________________________________MEVKKTSWTEEEDRILYQAHKRLG_NRWAEIAKLLP_____GRTDNAIKNHWNSTMRRKV____________________",
+        "______________________________________SHPTYSEMIAAAIRAEKSRGG_SSRQSIQKYIKSHYKVGHNADLQIKLSIRRLLAAGVLKQTKGVGASGSFRLAK__",
+        "______________________________________PRGSALSDTERAQLDVMKLLN_VSLHEMSRKIS______RSRHCIRVYLKDPVSYGTS___________________",
+        "_____________________________________MRSSAKQEELVKAFKALLKEEKFSSQGEIVAALQEQGFDNINQSKVSRMLTKFGAVRTRNAKMEMVYCLPAELGVPTT",
+        "SAAMAEQRHQEWLRFVDLLKNAYQNDLHLPLLNLMLTPDEREALGTRVRIIEELLRGE__MSQRELKNELG______AGIATITRGSNSLKAAPVELRQWLEEVLLKSD______"
+    ]
+
+    println()
+    println(string(fitness_string[1], '\n', fitness_string[2], '\n', fitness_string[3], '\n', fitness_string[4], '\n', fitness_string[5]))
+    println()
+
+    sequence2 = [
+        fitness_string[1],
+        fitness_string[2],
+        fitness_string[3],
+        fitness_string[4],
+        fitness_string[5]
+    ]
+
+    println(string("balibase score: ", score_sequence_pam250(sequence, 115, score_list, gap_ext_penalty)))
+    println(string("our score: ", score_sequence_pam250(sequence2, 115, score_list, gap_ext_penalty)))
+
+
+    pairwise_score(sequence, sequence2)
     return fitness_population[1]
 end
 

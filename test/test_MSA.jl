@@ -45,18 +45,20 @@ end
 
 # hyper_parameters
 score_list = [1, 0, 0]        # match, mismatch, gap penalty
-initial_population_size = 10     # currently always the maintained population
-gap_growth = 1.16                # after max input length is found, this is used to provide gaps for the max as well, ie [3, 4, 7] would be 7 * 1.2 = 9 (rounded up)
+gap_ext_penalty = -2          # if extending a gap, what is the penalty
+initial_population_size = 100     # currently always the maintained population
+gap_growth = 1.13                # after max input length is found, this is used to provide gaps for the max as well, ie [3, 4, 7] would be 7 * 1.2 = 9 (rounded up)
                                 # so 2 gaps put in the largest one, 5 in the next, and the 3 sized input would get 6 gaps
-elitism_prop = 0.2             # proportion of best to select to keep
+elitism_prop = 0.3             # proportion of best to select to keep
 num_crossover = 3               # number of crossovers to take as parents for generating against rest
 children_cap = 100          # how many children can be the result of a crossover, "nothing" means there is no cap
 generation_count = 1000          # how many times to run through children
 mutation_strength = 0.03        # how much do the gaps shuffle, 1 would be full shuffle
 crossover_criteria = 1          # save children from crossover when they are greater than 1 = average, 2 = worst, 3 = best of the 2 parents
-crossover_version = 1           # which type of crossover to use, 1 = random cuts and always left/right, 2 = random cuts and random left/right mix
+crossover_version = 2           # which type of crossover to use, 1 = random cuts and always left/right, 2 = random cuts and random left/right mix
 return_early = false            # if true, returns when children cap is met, otherwise when trying to add a new child, sort and pop off the worst
 mutation_chance = 0.5            # the % chance each child has to undergo mutation after crossover
+score_type = 2                  # 1 = basic match/mismatch/gap, 2 = pam250 and input gap penalty
 printout = false                 # whether to print out step-wise operation of the MSA to see how it works
                                 
 #input_sequence = input_rand_seq
@@ -66,7 +68,7 @@ printout = false                 # whether to print out step-wise operation of t
 #input_sequence = input_project_example
 input_sequence = []
 
-score_list, input = msa_from_file("in.txt")
+score_list, input = msa_from_file("lidy.txt")
 
 for i = 1:length(input)
     push!(input_sequence, input[i][2])
@@ -78,7 +80,7 @@ end
 println()
 
 results = MSA(input_sequence, score_list, initial_population_size, gap_growth, elitism_prop, num_crossover, children_cap, generation_count, mutation_strength,
-              crossover_criteria, crossover_version, return_early, mutation_chance, printout)
+              crossover_criteria, crossover_version, return_early, mutation_chance, printout, score_type, gap_ext_penalty)
 
 
 score = results[1]

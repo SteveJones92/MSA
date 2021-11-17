@@ -70,7 +70,99 @@ function msa_from_file(file)
     return score_list, input_sequence
 end
 
+function pairwise_score(reference_sequence, input_sequence)
+    sequence_length = length(reference_sequence[1])
+    score = 0
+
+    match = 0
+    mismatch = 0
+    total = 0
+
+    ref_list = []
+    index_list = fill(1, length(reference_sequence))
+
+    # for every sequence but the last
+    for i = 1:length(reference_sequence) - 1
+        # go through all characters (columns)
+        for pos = 1:sequence_length
+            # only check the characters
+            if reference_sequence[i][pos] == '_'
+                continue
+            end
+
+            for j = i + 1:length(reference_sequence)
+                if reference_sequence[j][pos] == '_'
+                    continue
+                end
+
+                count = 0
+                for k = 1:pos
+                    if reference_sequence[j][k] == '_'
+                        continue
+                    end
+
+                    count += 1
+                end
+
+                push!(ref_list, [ [i, index_list[i]], [j, count] ])
+                total += 1
+            end
+
+            index_list[i] += 1
+        end
+    end
+
+    ref_list2 = []
+    index_list2 = fill(1, length(input_sequence))
+
+    # for every sequence but the last
+    for i = 1:length(input_sequence) - 1
+        # go through all characters (columns)
+        for pos = 1:sequence_length
+            # only check the characters
+            if input_sequence[i][pos] == '_'
+                continue
+            end
+
+            for j = i + 1:length(input_sequence)
+                if input_sequence[j][pos] == '_'
+                    continue
+                end
+
+                count = 0
+                for k = 1:pos
+                    if input_sequence[j][k] == '_'
+                        continue
+                    end
+
+                    count += 1
+                end
+
+                push!(ref_list2, [ [i, index_list2[i]], [j, count] ])
+                total += 1
+            end
+
+            index_list2[i] += 1
+        end
+    end
+
+    for i = 1:length(ref_list)
+        if ref_list[i] in ref_list2
+            println(ref_list[i])
+            match += 1
+        end
+    end
+
+    score = (match) / total
+
+    #println(ref_list)
+    println(score)
+
+    return score
+end
+
 export insert_char
 export build_strings
 export get_gap_count
 export msa_from_file
+export pairwise_score
